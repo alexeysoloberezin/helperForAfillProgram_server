@@ -1,6 +1,6 @@
 const express = require('express');
 const app = express();
-const port = 1223;
+const port = 1221;
 const sharp = require('sharp');
 const fs = require('fs');
 const path = require('path');
@@ -10,10 +10,12 @@ const url = require('url');
 const archiver = require('archiver');
 
 app.use(express.json({ limit: '10mb' }));
-app.use(cors());
+app.use(cors({
+  origin: '*' // разрешить все источники
+}));
 
 app.get('/', (req, res) => {
-  res.send('Привет, мир!');
+  res.send('Привет, мир!13');
 });
 
 async function convertImagesToWebP() {
@@ -34,13 +36,24 @@ async function convertImagesToWebP() {
   // Получаем список файлов в директории source
   const files = fs.readdirSync(sourceDir);
 
+  const imagemin = await import('imagemin');
+  const imageminWebp = await import('imagemin-webp');
+
   for (const file of files) {
     try {
       const inputFilePath = path.join(sourceDir, file);
       const outputFileName = file.replace('.png', '.webp');
       const outputFilePath = path.join(webpDir, outputFileName);
 
-      await sharp(inputFilePath).toFormat('webp').toFile(outputFilePath);
+      await imagemin.default([inputFilePath], {
+        destination: webpDir,
+        plugins: [
+          imageminWebp.default({
+            lossless: true
+          })
+        ]
+      });
+
       console.log(`Изображение ${file} успешно конвертировано в ${outputFileName}`);
     } catch (error) {
       console.error(`Ошибка при конвертации изображения ${file}:`, error);
@@ -199,3 +212,5 @@ function deleteFilesFromDirectories(directories) {
 app.listen(port, () => {
   console.log(`Сервер запущен на порту ${port}`);
 });
+
+module.exports = app;
